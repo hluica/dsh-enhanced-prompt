@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-enhanced-prompt
+      name: '@local/dsh-enhanced-prompt'

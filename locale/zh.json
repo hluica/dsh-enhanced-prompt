@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "用户 Prompt Markdown",
+    "description": "让用户 prompt 气泡走与模型回复相同的 Markdown 渲染管线；文件与技能引用 chip 原样保留。"
+  }
+}

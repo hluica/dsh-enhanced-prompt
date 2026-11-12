@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "User Prompt Markdown",
+    "description": "Renders the user prompt bubble through the same Markdown pipeline as assistant replies; file and skill reference chips are preserved."
+  }
+}

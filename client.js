@@ -93,6 +93,22 @@ window.__ModuleLoader__.load({
     const SENTINEL_CLOSE = '\uE001';
     const SENTINEL_RE = /\uE000([0-9a-z]+)\uE001/g;
 
+    /**
+     * Escape any literal sentinel character inside authored plain text so it is
+     * never mistaken for a chip placeholder when the composed Markdown is
+     * rendered and then walked by `restoreChips`. A delimiter is prefixed with
+     * the opaque marker `\uE003`, which `splitSentinelText` does not match.
+     * @param value - a plain-text slice from the authored message.
+     * @returns text safe to embed between sentinels.
+     */
+    function escapeSentinels(value) {
+      return value
+        .split(SENTINEL_OPEN)
+        .join(SENTINEL_OPEN + '\uE003')
+        .split(SENTINEL_CLOSE)
+        .join('\uE003' + SENTINEL_CLOSE);
+    }
+
     const CSS = [
       '.dep-row{display:flex;flex-direction:column;align-items:flex-end;gap:6px}',
       '.dep-stack{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0;width:100%;max-width:100%}',
@@ -215,14 +231,14 @@ window.__ModuleLoader__.load({
         if (item === null || item === undefined || item.id === 'text') continue;
         if (typeof item.start !== 'number' || typeof item.end !== 'number') continue;
         if (item.start < cursor || item.end <= item.start) continue;
-        markdown += text.slice(cursor, item.start);
+        markdown += escapeSentinels(text.slice(cursor, item.start));
         const key = seq.toString(36);
         markdown += SENTINEL_OPEN + key + SENTINEL_CLOSE;
         chips.push({ key, id: item.id, data: item.data, raw: text.slice(item.start, item.end) });
         cursor = item.end;
         seq += 1;
       }
-      markdown += text.slice(cursor);
+      markdown += escapeSentinels(text.slice(cursor));
       return { markdown, chips };
     }
 
@@ -366,7 +382,8 @@ window.__ModuleLoader__.load({
           fragment.appendChild(holder);
           slots.push({ holder, element: piece.element });
         }
-        parent.replaceChild(fragment, textNode);
+        textNode.nodeValue = '';
+        parent.insertBefore(fragment, textNode);
       }
       return slots;
     }
@@ -391,7 +408,7 @@ window.__ModuleLoader__.load({
         if (element === null) return;
         const restored = restoreChips(element, chips, wiring);
         setSlots(restored.length === 0 ? EMPTY_SLOTS : restored);
-      }, []);
+      }, [chips, wiring]);
 
       return h(
         'div',

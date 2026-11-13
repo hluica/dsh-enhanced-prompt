@@ -294,7 +294,7 @@ window.__ModuleLoader__.load({
         case 'secret':
           return h(
             'span',
-            { key, className: 'dep-secret', 'data-secret': '', title: chip.raw },
+            { key, className: 'dep-secret', 'data-secret': '', title: '\u2022\u2022\u2022\u2022\u2022\u2022' },
             '\u2022\u2022\u2022\u2022\u2022\u2022',
           );
         default:
@@ -521,6 +521,9 @@ window.__ModuleLoader__.load({
             copyTimer.current = null;
             setCopied(false);
           }, 1000);
+        }).catch(() => {
+          if (epoch !== copyEpoch.current) return;
+          copyPending.current = false;
         });
       }, [copied, text]);
 

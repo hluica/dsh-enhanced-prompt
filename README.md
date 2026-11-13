@@ -4,7 +4,7 @@
 
 让 **DeepSeek Harness 的用户 prompt 气泡**走与模型回复完全相同的 Markdown 渲染管线。
 
-用户 prompt 中的 GFM 表格、代码高亮、TeX 公式与块级结构都按与模型回复相同的规则渲染；`@文件` / `/技能` / `@会话` 引用仍保持为可点击 chip；在已发送的 prompt 中选中文本时，官方「引用文本」按钮照常出现，引用发送后显示为紧凑预览。
+用户 prompt 中的 GFM 表格、代码高亮、TeX 公式与块级结构都按与模型回复相同的规则渲染；`@文件` / `/技能` / `@会话` 引用渲染为 chip，其中当前仅 `@文件` 已接线可点击打开；在已发送的 prompt 中选中文本时，官方「引用文本」按钮照常出现，引用发送后显示为紧凑预览。
 
 ## 效果
 
@@ -13,7 +13,7 @@
 | 文本渲染 | `MarkdownText`（与模型回复同一个组件） |
 | `# 标题`、`- 列表`、`**粗体**` | 正常渲染 |
 | 围栏代码块 | 语法高亮 + 复制按钮 |
-| `@文件` / `/技能` / `@会话` 引用 chip | 仍为可点击 chip |
+| `@文件` / `/技能` / `@会话` 引用 chip | 已渲染为 chip；当前仅 `@文件` 可点击打开 |
 | 选中 prompt 文本 | 官方「引用文本」按钮照常出现，可把选区插入 composer |
 | `> 引用` 行 | 渲染为官方 `QuotePreview` 紧凑预览；悬停显示全文 |
 | 气泡宽度 | 与模型输出区等宽 |
@@ -158,11 +158,11 @@ npm run verify
 
 - 工厂契约与 `inject` 列表、样式标签归属、`user` / `steering` 两个 cell 以 `priority: -1` 注册；
 - **组合逻辑**：列表项里的 chip 不切断文档（`- 检查 @a.ts 的实现` 组成单一 Markdown 源）、引用节点保留 `\n\n` 块边界、无引用时原样、多个 chip、求值器抛错时回落、重叠匹配跳过；
-- **chip 映射**：file/folder/session/skill/command/secret 各自的外观与激活，`quote` 映射到 `QuotePreview` 且传入解码文本、未知类型回落原文，缺少 opener 时不加交互；
+- **chip 映射**：file/folder/session/skill/command/secret 各自的外观与激活，`quote` 映射到 `QuotePreview` 且传入解码文本、未知类型回落原文，缺少 opener 时不加交互（`secret` 为防御性占位：DSH 鉴权弹窗的 secret 形态是 `{message, placeholder}`，不会经由本插件的用户文本求值器进入消息，默认不触发）；
 - **哨兵替换**：文本/chip/文本三段、`pre`/`code` 内回落原文、未知哨兵保留、纯文本直通；
 - 样式表关键规则（含气泡加宽只匹配 `data-message-bubble`、不再使用 `_bubble` 类名子串），以及当前 API 契约的回归守卫（包括气泡的 `data-text-interaction-source` 与 `QuotePreview` 来源）。
 
-`mountMarkdown` 依赖真实浏览器（`createRoot` / `flushSync` / `TreeWalker`），不在 Node 桩里执行。
+`mountMarkdown` 依赖真实浏览器（`createRoot` / `TreeWalker`），不在 Node 桩里执行。
 
 已接入 `~/.dsh/profiles/desktop`（link 依赖 + bundles 条目），`@local/dsh-enhanced-prompt`、`/client`、`/locale/*.json` 均已验证可解析。
 

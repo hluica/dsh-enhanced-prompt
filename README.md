@@ -158,7 +158,7 @@ npm run verify
 
 - 工厂契约与 `inject` 列表、样式标签归属、`user` / `steering` 两个 cell 以 `priority: -1` 注册；
 - **组合逻辑**：列表项里的 chip 不切断文档（`- 检查 @a.ts 的实现` 组成单一 Markdown 源）、引用节点保留 `\n\n` 块边界、无引用时原样、多个 chip、求值器抛错时回落、重叠匹配跳过；
-- **chip 映射**：file/folder/session/skill/command/secret 各自的外观与激活，`quote` 映射到 `QuotePreview` 且传入解码文本、未知类型回落原文，缺少 opener 时不加交互（`secret` 为防御性占位：DSH 鉴权弹窗的 secret 形态是 `{message, placeholder}`，不会经由本插件的用户文本求值器进入消息，默认不触发）；
+- **chip 映射**：file/folder/session/skill/command/secret 各自的外观与激活，`quote` 映射到 `QuotePreview` 且传入解码文本、未知类型回落原文，缺少 opener 时不加交互（`secret` 由 `dsh-client-ui-secret-mask` 的凭据扫描规则产生，节点数据为 `{ masked }`；Host 鉴权提示的 `{ message, placeholder }` 是另一套 `AuthorizationPrompt` 类型，不进入这里的用户文本节点）；
 - **哨兵替换**：文本/chip/文本三段、`pre`/`code` 内回落原文、未知哨兵保留、纯文本直通；
 - 样式表关键规则（含气泡加宽只匹配 `data-message-bubble`、不再使用 `_bubble` 类名子串），以及当前 API 契约的回归守卫（包括气泡的 `data-text-interaction-source` 与 `QuotePreview` 来源）。
 

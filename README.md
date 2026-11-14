@@ -1,6 +1,6 @@
 # User Prompt Markdown（`@local/dsh-enhanced-prompt`）
 
-最后实质性修改于Harness版本：0.2.2-rc.1
+最后实质性修改于Harness版本：0.2.2-rc.3
 
 让 **DeepSeek Harness 的用户 prompt 气泡**走与模型回复完全相同的 Markdown 渲染管线。
 
@@ -79,7 +79,7 @@ chip 于是落在 `<li><p>` 内部，列表、有序编号、代码围栏、`tex
 
 ## 依赖与构建
 
-插件当前面向 DSH `0.2.2-rc.1`：`package.json` 的 `peerDependencies["@deepseek-ai/dsh"]` 为 `^0.2.2-rc.1`，`dsh.client.inject` 同时声明 `@deepseek-ai/dsh-client-ui-conversation` 与 `@deepseek-ai/dsh-client-ui-primitives`。
+插件当前面向 DSH `0.2.2-rc.1` 及以后（本次审查与合并验证于 `0.2.2-rc.3`）：`package.json` 的 `peerDependencies["@deepseek-ai/dsh"]` 为 `^0.2.2-rc.1`，`dsh.client.inject` 同时声明 `@deepseek-ai/dsh-client-ui-conversation` 与 `@deepseek-ai/dsh-client-ui-primitives`。
 
 Host 半**零导入**：`index.js` 只导出 `ENTRY_ID` 和一个空的 `apply()`，存在的意义是给 Loader 条目一个可挂载的模块。这是刻意的设计——Host 半一旦 import 了 profile 不提供的包，插件就会变成「已启用但未运行」（`fiberPhase: null`），而且 Node 会**永久缓存**这次导入失败，只能重启重试。
 
@@ -90,7 +90,7 @@ Host 半**零导入**：`index.js` 只导出 `ENTRY_ID` 和一个空的 `apply()
 | 命令             | 作用                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `npm run verify` | 一个命令回答「这插件现在健康吗」：真实文件不变量、清单契约、`node --check`、**Host 半零导入 + `ENTRY_ID`**，以及下面的 `npm test` |
-| `npm test`       | `test/lifecycle.test.mjs`：Client 半的生命周期与渲染回归（60 项检查，不需要应用在场）                                             |
+| `npm test`       | `test/lifecycle.test.mjs`：Client 半的生命周期与渲染回归（64 项检查，不需要应用在场）                                             |
 | `npm run build`  | 清掉 macOS 边角文件与任何 `node_modules/`，然后跑 `verify`——本插件没有可物化的依赖                                                |
 | `npm run clean`  | 删除 `node_modules/`（若存在）与 `.cache/`                                                                                        |
 
@@ -122,7 +122,7 @@ Host 半**零导入**：`index.js` 只导出 `ENTRY_ID` 和一个空的 `apply()
 - **引用预览按块位置显示。** 原生纯文本流会把引用前后的 `\n\n` 显示成空格；本插件保留 Markdown 块边界，因此 `QuotePreview` 独占一个段落，不会合并引用两侧的块。这是为了不让引用破坏列表、表格与代码围栏等结构。
 - **代码围栏内的 `> …` 仍降级为原文。** 引用规则在 Markdown 之前运行，可能把围栏里的 `>` 行识别成引用；哨兵落在 `pre`/`code` 内时会放回原始 token，因此预览不出现但文本不丢，与 chip 的围栏降级同源。
 - **「引用文本」按钮由官方插件拥有。** 本插件只把增强气泡标记为 `data-text-interaction-source`；选区判断、按钮文案、Session 可写限制与 composer 插入都由 `dsh-message-quotes` 负责，插件没有自己的引用实现。
-- **chip 在代码围栏内降级为原文。** 解析器不知道围栏边界，可能把围栏里的 `@x` 当成引用；替换时若哨兵落在 `pre`/`code` 内，会放回原始 token 而不是插入一个块级 chip。
+- **chip 在代码围栏内降级为原文。** 解析器不知道围栏边界，可能把围栏里的 `@x` 当成引用；替换时若哨兵落在 `pre`/`code` 内，会放回原始 token 而不是插入一个块级 chip。唯一例外是 `secret`：它回落的是 `data.masked`，因此密钥原文不会因围栏降级而回到气泡里。
 - **`/skill` chip 目前不可点击。** chat node owner props 不提供 `openSkill`，因此 skill chip 渲染为不可交互的样式。文件 chip 仍可点击打开。
 - **`@session` / `folder` / `command` chip 保持非交互**——与内置渲染器一致。
 - **升级风险。** 本插件接管整个 chat node 渲染，`MarkdownText` 的 props、`conversation.user.text` 的节点形状、或 `uiConversation` 服务一旦变动都会影响它。`uiConversation` 未出现在公开服务目录里，属于未编目 API。渲染抛错时槽位错误边界会**静默 abdicate**（只在浏览器控制台留一行 `slot entry crashed in ...`），界面回落到内置纯文本——遇到"插件已启用但 prompt 没变化"，先看控制台。
@@ -154,12 +154,12 @@ dsh-enhanced-prompt/
 npm run verify
 ```
 
-其中行为测试是 `npm test`（也就是 `node test/lifecycle.test.mjs`），在 React / DOM / Cordis 桩下跑真实 `client.js`，**60 项检查全部通过**，覆盖：
+其中行为测试是 `npm test`（也就是 `node test/lifecycle.test.mjs`），在 React / DOM / Cordis 桩下跑真实 `client.js`，**64 项检查全部通过**，覆盖：
 
 - 工厂契约与 `inject` 列表、样式标签归属、`user` / `steering` 两个 cell 以 `priority: -1` 注册；
 - **组合逻辑**：列表项里的 chip 不切断文档（`- 检查 @a.ts 的实现` 组成单一 Markdown 源）、引用节点保留 `\n\n` 块边界、无引用时原样、多个 chip、求值器抛错时回落、重叠匹配跳过；
 - **chip 映射**：file/folder/session/skill/command/secret 各自的外观与激活，`quote` 映射到 `QuotePreview` 且传入解码文本、未知类型回落原文，缺少 opener 时不加交互（`secret` 由 `dsh-client-ui-secret-mask` 的凭据扫描规则产生，节点数据为 `{ masked }`；Host 鉴权提示的 `{ message, placeholder }` 是另一套 `AuthorizationPrompt` 类型，不进入这里的用户文本节点）；
-- **哨兵替换**：文本/chip/文本三段、`pre`/`code` 内回落原文、未知哨兵保留、纯文本直通；
+- **哨兵替换**：文本/chip/文本三段、用户原文里的字面哨兵被转义、`pre`/`code` 内普通 chip 回落原文（`secret` 回落 `data.masked`，不显示密钥原文）、未知哨兵保留、纯文本直通；
 - 样式表关键规则（含气泡加宽只匹配 `data-message-bubble`、不再使用 `_bubble` 类名子串），以及当前 API 契约的回归守卫（包括气泡的 `data-text-interaction-source` 与 `QuotePreview` 来源）。
 
 `mountMarkdown` 依赖真实浏览器（`createRoot` / `TreeWalker`），不在 Node 桩里执行。

@@ -230,6 +230,24 @@ const overlapping = composeMessage('aaa @a.ts', () => [
 ], {});
 check('overlapping matches are skipped', overlapping.chips.length === 1, String(overlapping.chips.length));
 
+// A literal sentinel in the authored text must not be mistaken for the chip
+// with the same key. The escape marker is the opaque \uE003, which the
+// sentinel regex does not match.
+const literalText = 'a \uE0000\uE001 b @x.ts';
+const literal = composeMessage(literalText, () => [
+  { id: 'text', start: 0, end: 8 },
+  { id: 'file', start: 8, end: 13, data: { path: 'x.ts', label: 'x.ts' } },
+], {});
+check(
+  'literal sentinels are escaped, not read as chips',
+  literal.markdown === 'a \uE000\uE0030\uE003\uE001 b \uE0000\uE001',
+  JSON.stringify(literal.markdown),
+);
+check(
+  'only the real chip keeps a bare sentinel',
+  (literal.markdown.match(/\uE000[0-9a-z]+\uE001/g) ?? []).length === 1 && literal.chips.length === 1,
+);
+
 console.log('\n[5] chips map to the shipped primitive');
 const chipOf = (id, data, raw) => chipElement({ key: '0', id, data, raw }, 'k', { openFile: () => {}, openSkill: () => {} });
 const fileChip = chipOf('file', { path: 'a.ts', label: 'a.ts' }, '@a.ts');
@@ -251,6 +269,11 @@ check('quote preview gets decoded text', quoteChip.props.text === 'quoted');
 check('transcript quote is not removable', quoteChip.props.removal === undefined);
 const secretChip = chipOf('secret', { masked: 'abc' }, 'sk-1');
 check('secret renders masked', secretChip.type === 'span' && secretChip.props['data-secret'] === '');
+check(
+  'secret tooltip does not repeat the raw credential',
+  secretChip.props.title === '\u2022\u2022\u2022\u2022\u2022\u2022' && !String(secretChip.props.title).includes('sk-1'),
+  String(secretChip.props.title),
+);
 const unknownChip = chipOf('mystery', {}, '@x');
 check('unknown kind falls back to raw text', unknownChip === '@x');
 const noWiring = chipElement({ key: '0', id: 'file', data: { path: 'a.ts', label: 'a.ts' }, raw: '@a.ts' }, 'k', {});
@@ -263,6 +286,15 @@ check('produces text, chip, text', mixed.length === 3 && typeof mixed[0] === 'st
 check('chip element preserved', mixed[1].element.type === ReferenceChip);
 const opaque = splitSentinelText('\uE0000\uE001', byKey, { openFile: () => {} }, true);
 check('inside pre/code the raw token is used', opaque.length === 1 && opaque[0] === '@a.ts');
+const secretByKey = new Map([['0', {
+  key: '0', id: 'secret', data: { masked: '\u2022\u2022\u2022\u2022' }, raw: 'sk-1',
+}]]);
+const secretOpaque = splitSentinelText('\uE0000\uE001', secretByKey, {}, true);
+check(
+  'inside pre/code a secret keeps its mask instead of the raw credential',
+  secretOpaque.length === 1 && secretOpaque[0] === '\u2022\u2022\u2022\u2022',
+  JSON.stringify(secretOpaque),
+);
 const orphan = splitSentinelText('a \uE0009\uE001 b', byKey, {}, false);
 check('unknown sentinel is left as-is', orphan.length === 3 && orphan[1] === '\uE0009\uE001');
 const noSentinel = splitSentinelText('plain', byKey, {}, false);

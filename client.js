@@ -93,6 +93,9 @@ window.__ModuleLoader__.load({
     const SENTINEL_CLOSE = '\uE001';
     const SENTINEL_RE = /\uE000([0-9a-z]+)\uE001/g;
 
+    /** Fallback mask for a secret node whose `masked` form is missing. */
+    const SECRET_MASK = '\u2022\u2022\u2022\u2022\u2022\u2022';
+
     /**
      * Escape any literal sentinel character inside authored plain text so it is
      * never mistaken for a chip placeholder when the composed Markdown is
@@ -308,10 +311,12 @@ window.__ModuleLoader__.load({
             ? h(QuotePreview, { key, text: data.text ?? chip.raw })
             : chip.raw;
         case 'secret':
+          // The authored credential stays in `raw`; the tooltip must not
+          // repeat it, so it carries the same fixed mask as the visible text.
           return h(
             'span',
-            { key, className: 'dep-secret', 'data-secret': '', title: '\u2022\u2022\u2022\u2022\u2022\u2022' },
-            '\u2022\u2022\u2022\u2022\u2022\u2022',
+            { key, className: 'dep-secret', 'data-secret': '', title: SECRET_MASK },
+            SECRET_MASK,
           );
         default:
           return chip.raw;
@@ -335,7 +340,7 @@ window.__ModuleLoader__.load({
         if (match.index > last) pieces.push(value.slice(last, match.index));
         const chip = byKey.get(match[1]);
         if (chip === undefined) pieces.push(match[0]);
-        else if (opaque) pieces.push(chip.raw);
+        else if (opaque) pieces.push(chip.id === 'secret' ? (chip.data?.masked ?? SECRET_MASK) : chip.raw);
         else pieces.push({ element: chipElement(chip, `chip-${chip.key}`, wiring) });
         last = match.index + match[0].length;
       }
